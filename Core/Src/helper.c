@@ -9,8 +9,8 @@
 
 /**
   * @brief  Gets current time stored in RTC
-  * @param  hi2c : I2C handle of RTC
-  * @param  dateTime : DateTime struct to receive data from RTC
+  * @param  hi2c I2C handle of RTC
+  * @param  dateTime DateTime struct to receive data from RTC
   * @retval None
   */
 void RTC_getTime(I2C_HandleTypeDef * hi2c, DateTime * dateTime)
@@ -32,8 +32,8 @@ void RTC_getTime(I2C_HandleTypeDef * hi2c, DateTime * dateTime)
 
 /**
   * @brief  Sets RTC with given time
-  * @param  hi2c : I2C handle of RTC
-  * @param  dateTime : DateTime struct containing data to write to RTC
+  * @param  hi2c I2C handle of RTC
+  * @param  dateTime DateTime struct containing data to write to RTC
   * @retval None
   */
 void RTC_setTime(I2C_HandleTypeDef * hi2c, const DateTime * dateTime)
@@ -54,9 +54,9 @@ void RTC_setTime(I2C_HandleTypeDef * hi2c, const DateTime * dateTime)
 
 /**
   * @brief  Initializes DAC
-  * @param  hspi : SPI handle of DAC
-  * @param  nCS_Port : SPI nCS pin port
-  * @param  nCS_Pin : SPI nCS pin
+  * @param  hspi SPI handle of DAC
+  * @param  nCS_Port SPI nCS pin port
+  * @param  nCS_Pin SPI nCS pin
   * @retval None
   */
 void DAC_init(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_Pin)
@@ -87,11 +87,11 @@ void DAC_init(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_Pi
 
 /**
   * @brief  Sets one DAC channel
-  * @param  hspi : SPI handle of DAC
-  * @param  nCS_Port : SPI nCS pin port
-  * @param  nCS_Pin : SPI nCS pin
-  * @param  channel : DAC output channel (1 ~ 6, 1 -> rightmost digit)
-  * @param  value : DAC output value (0 ~ 255)
+  * @param  hspi SPI handle of DAC
+  * @param  nCS_Port SPI nCS pin port
+  * @param  nCS_Pin SPI nCS pin
+  * @param  channel DAC output channel (1 ~ 6, 1 -> rightmost digit)
+  * @param  value DAC output value (0 ~ 255)
   * @retval None
   */
 void DAC_setChannel(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_Pin, uint8_t channel, uint8_t value)
@@ -113,10 +113,10 @@ void DAC_setChannel(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t 
 
 /**
   * @brief  Sets all DAC channels
-  * @param  hspi : SPI handle of DAC
-  * @param  nCS_Port : SPI nCS pin port
-  * @param  nCS_Pin : SPI nCS pin
-  * @param  value : DAC output value (0 ~ 255)
+  * @param  hspi SPI handle of DAC
+  * @param  nCS_Port SPI nCS pin port
+  * @param  nCS_Pin SPI nCS pin
+  * @param  value DAC output value (0 ~ 255)
   * @retval None
   */
 void DAC_setAll(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_Pin, uint8_t value)
@@ -133,9 +133,9 @@ void DAC_setAll(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_
 
 /**
   * @brief  Clears all digits (sets analog mux to channel 15)
-  * @param  hspi : SPI handle of shift register
-  * @param  nCS_Port : SPI nCS pin port
-  * @param  nCS_Pin : SPI nCS pin
+  * @param  hspi SPI handle of shift register
+  * @param  nCS_Port SPI nCS pin port
+  * @param  nCS_Pin SPI nCS pin
   * @retval None
   */
 void SR_clearDigits(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_Pin)
@@ -151,10 +151,10 @@ void SR_clearDigits(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t 
 
 /**
   * @brief  Sets digits
-  * @param  hspi : SPI handle of shift register
-  * @param  nCS_Port : SPI nCS pin port
-  * @param  nCS_Pin : SPI nCS pin
-  * @param  digits : Array of digits to be set, must be size 6 (digits[0] -> rightmost digit)
+  * @param  hspi SPI handle of shift register
+  * @param  nCS_Port SPI nCS pin port
+  * @param  nCS_Pin SPI nCS pin
+  * @param  digits Array of digits to be set, must be size 6 (digits[0] -> rightmost digit)
   * @retval None
   */
 void SR_setDigits(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_Pin, uint8_t * digits)
