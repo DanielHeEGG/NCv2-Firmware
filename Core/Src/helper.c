@@ -1,42 +1,42 @@
 /**
-  ******************************************************************************
-  * @file           : helper.c
-  * @brief          : Helper functions
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : helper.c
+ * @brief          : Helper functions
+ ******************************************************************************
+ */
 
 #include "helper.h"
 
 /**
-  * @brief  Gets current time stored in RTC
-  * @param  hi2c I2C handle of RTC
-  * @param  dateTime DateTime struct to receive data from RTC
-  * @retval None
-  */
-void RTC_getTime(I2C_HandleTypeDef * hi2c, DateTime * dateTime)
+ * @brief  Gets current time stored in RTC
+ * @param  hi2c I2C handle of RTC
+ * @param  dateTime DateTime struct to receive data from RTC
+ * @retval None
+ */
+void RTC_getTime(I2C_HandleTypeDef *hi2c, DateTime *dateTime)
 {
     uint8_t buffer[7];
 
     HAL_I2C_Mem_Read(hi2c, 0xD0, 0, 1, buffer, 7, HAL_MAX_DELAY);
 
-    dateTime->second = (buffer[0] & 0x0F) + 10*((buffer[0] & 0x70) >> 4);
-    dateTime->minute = (buffer[1] & 0x0F) + 10*((buffer[1] & 0x70) >> 4);
-    dateTime->hour = (buffer[2] & 0x0F) + 10*((buffer[2] & 0x30) >> 4);
+    dateTime->second = (buffer[0] & 0x0F) + 10 * ((buffer[0] & 0x70) >> 4);
+    dateTime->minute = (buffer[1] & 0x0F) + 10 * ((buffer[1] & 0x70) >> 4);
+    dateTime->hour = (buffer[2] & 0x0F) + 10 * ((buffer[2] & 0x30) >> 4);
     dateTime->weekday = buffer[3] & 0x07;
-    dateTime->day = (buffer[4] & 0x0F) + 10*((buffer[4] & 0x30) >> 4);
-    dateTime->month = (buffer[5] & 0x0F) + 10*((buffer[5] & 0x10) >> 4);
-    dateTime->year = (buffer[6] & 0x0F) + 10*((buffer[6] & 0xF0) >> 4);
+    dateTime->day = (buffer[4] & 0x0F) + 10 * ((buffer[4] & 0x30) >> 4);
+    dateTime->month = (buffer[5] & 0x0F) + 10 * ((buffer[5] & 0x10) >> 4);
+    dateTime->year = (buffer[6] & 0x0F) + 10 * ((buffer[6] & 0xF0) >> 4);
 
     return;
 }
 
 /**
-  * @brief  Sets RTC with given time
-  * @param  hi2c I2C handle of RTC
-  * @param  dateTime DateTime struct containing data to write to RTC
-  * @retval None
-  */
-void RTC_setTime(I2C_HandleTypeDef * hi2c, const DateTime * dateTime)
+ * @brief  Sets RTC with given time
+ * @param  hi2c I2C handle of RTC
+ * @param  dateTime DateTime struct containing data to write to RTC
+ * @retval None
+ */
+void RTC_setTime(I2C_HandleTypeDef *hi2c, const DateTime *dateTime)
 {
     uint8_t buffer[7];
     buffer[0] = ((dateTime->second / 10) << 4) & (dateTime->second % 10);
@@ -53,13 +53,13 @@ void RTC_setTime(I2C_HandleTypeDef * hi2c, const DateTime * dateTime)
 }
 
 /**
-  * @brief  Initializes DAC
-  * @param  hspi SPI handle of DAC
-  * @param  nCS_Port SPI nCS pin port
-  * @param  nCS_Pin SPI nCS pin
-  * @retval None
-  */
-void DAC_init(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_Pin)
+ * @brief  Initializes DAC
+ * @param  hspi SPI handle of DAC
+ * @param  nCS_Port SPI nCS pin port
+ * @param  nCS_Pin SPI nCS pin
+ * @retval None
+ */
+void DAC_init(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_Pin)
 {
     uint8_t buffer[2];
 
@@ -86,15 +86,15 @@ void DAC_init(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_Pi
 }
 
 /**
-  * @brief  Sets one DAC channel
-  * @param  hspi SPI handle of DAC
-  * @param  nCS_Port SPI nCS pin port
-  * @param  nCS_Pin SPI nCS pin
-  * @param  channel DAC output channel (1 ~ 6, 1 -> rightmost digit)
-  * @param  value DAC output value (0 ~ 255)
-  * @retval None
-  */
-void DAC_setChannel(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_Pin, uint8_t channel, uint8_t value)
+ * @brief  Sets one DAC channel
+ * @param  hspi SPI handle of DAC
+ * @param  nCS_Port SPI nCS pin port
+ * @param  nCS_Pin SPI nCS pin
+ * @param  channel DAC output channel (1 ~ 6, 1 -> rightmost digit)
+ * @param  value DAC output value (0 ~ 255)
+ * @retval None
+ */
+void DAC_setChannel(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_Pin, uint8_t channel, uint8_t value)
 {
     channel = channel & 0x0F;
     channel = (channel & 0xC) >> 2 | (channel & 0x3) << 2;
@@ -112,14 +112,14 @@ void DAC_setChannel(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t 
 }
 
 /**
-  * @brief  Sets all DAC channels
-  * @param  hspi SPI handle of DAC
-  * @param  nCS_Port SPI nCS pin port
-  * @param  nCS_Pin SPI nCS pin
-  * @param  value DAC output value (0 ~ 255)
-  * @retval None
-  */
-void DAC_setAll(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_Pin, uint8_t value)
+ * @brief  Sets all DAC channels
+ * @param  hspi SPI handle of DAC
+ * @param  nCS_Port SPI nCS pin port
+ * @param  nCS_Pin SPI nCS pin
+ * @param  value DAC output value (0 ~ 255)
+ * @retval None
+ */
+void DAC_setAll(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_Pin, uint8_t value)
 {
     DAC_setChannel(hspi, nCS_Port, nCS_Pin, 1, value);
     DAC_setChannel(hspi, nCS_Port, nCS_Pin, 2, value);
@@ -132,13 +132,13 @@ void DAC_setAll(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_
 }
 
 /**
-  * @brief  Clears all digits (sets analog mux to channel 15)
-  * @param  hspi SPI handle of shift register
-  * @param  nCS_Port SPI nCS pin port
-  * @param  nCS_Pin SPI nCS pin
-  * @retval None
-  */
-void SR_clearDigits(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_Pin)
+ * @brief  Clears all digits (sets analog mux to channel 15)
+ * @param  hspi SPI handle of shift register
+ * @param  nCS_Port SPI nCS pin port
+ * @param  nCS_Pin SPI nCS pin
+ * @retval None
+ */
+void SR_clearDigits(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_Pin)
 {
     uint8_t buffer[3] = {0xFF, 0xFF, 0xFF};
 
@@ -150,14 +150,14 @@ void SR_clearDigits(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t 
 }
 
 /**
-  * @brief  Sets digits
-  * @param  hspi SPI handle of shift register
-  * @param  nCS_Port SPI nCS pin port
-  * @param  nCS_Pin SPI nCS pin
-  * @param  digits Array of digits to be set, must be size 6 (digits[0] -> rightmost digit)
-  * @retval None
-  */
-void SR_setDigits(SPI_HandleTypeDef * hspi, GPIO_TypeDef * nCS_Port, uint16_t nCS_Pin, uint8_t * digits)
+ * @brief  Sets digits
+ * @param  hspi SPI handle of shift register
+ * @param  nCS_Port SPI nCS pin port
+ * @param  nCS_Pin SPI nCS pin
+ * @param  digits Array of digits to be set, must be size 6 (digits[0] -> rightmost digit)
+ * @retval None
+ */
+void SR_setDigits(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_Pin, uint8_t *digits)
 {
     uint8_t buffer[3];
     buffer[0] = (digits[0] << 4) | digits[1];
