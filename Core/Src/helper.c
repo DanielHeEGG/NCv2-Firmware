@@ -17,7 +17,7 @@ void RTC_getTime(I2C_HandleTypeDef *hi2c, DateTime *dateTime)
 {
     uint8_t buffer[7];
 
-    HAL_I2C_Mem_Read(hi2c, 0xD0, 0, 1, buffer, 7, HAL_MAX_DELAY);
+    if (HAL_I2C_Mem_Read(hi2c, 0xD0, 0, 1, buffer, 7, 1000) != HAL_OK) Error_Handler();
 
     dateTime->second = (buffer[0] & 0x0F) + 10 * ((buffer[0] & 0x70) >> 4);
     dateTime->minute = (buffer[1] & 0x0F) + 10 * ((buffer[1] & 0x70) >> 4);
@@ -47,7 +47,7 @@ void RTC_setTime(I2C_HandleTypeDef *hi2c, const DateTime *dateTime)
     buffer[5] = ((dateTime->month / 10) << 4) & (dateTime->month % 10);
     buffer[6] = ((dateTime->year / 10) << 4) & (dateTime->year % 10);
 
-    HAL_I2C_Mem_Write(hi2c, 0xD0, 0, 1, buffer, 7, HAL_MAX_DELAY);
+    if (HAL_I2C_Mem_Write(hi2c, 0xD0, 0, 1, buffer, 7, 1000) != HAL_OK) Error_Handler();
 
     return;
 }
@@ -67,19 +67,19 @@ void DAC_init(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_Pin)
     buffer[0] = 0x09;
     buffer[1] = 0xFF;
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 0);
-    HAL_SPI_Transmit(hspi, buffer, 2, HAL_MAX_DELAY);
+    if (HAL_SPI_Transmit(hspi, buffer, 2, 1000) != HAL_OK) Error_Handler();
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 1);
 
     // Set all IO to DAC mode, 0b0011 11111111
     buffer[0] = 0x03;
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 0);
-    HAL_SPI_Transmit(hspi, buffer, 2, HAL_MAX_DELAY);
+    if (HAL_SPI_Transmit(hspi, buffer, 2, 1000) != HAL_OK) Error_Handler();
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 1);
 
     // Set all IO to output mode, 0b1111 11111111
     buffer[0] = 0x0F;
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 0);
-    HAL_SPI_Transmit(hspi, buffer, 2, HAL_MAX_DELAY);
+    if (HAL_SPI_Transmit(hspi, buffer, 2, 1000) != HAL_OK) Error_Handler();
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 1);
 
     return;
@@ -105,7 +105,7 @@ void DAC_setChannel(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nC
     buffer[1] = value;
 
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 0);
-    HAL_SPI_Transmit(hspi, buffer, 2, HAL_MAX_DELAY);
+    if (HAL_SPI_Transmit(hspi, buffer, 2, 1000) != HAL_OK) Error_Handler();
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 1);
 
     return;
@@ -143,7 +143,7 @@ void SR_clearDigits(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nC
     uint8_t buffer[3] = {0xFF, 0xFF, 0xFF};
 
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 0);
-    HAL_SPI_Transmit(hspi, buffer, 3, HAL_MAX_DELAY);
+    if (HAL_SPI_Transmit(hspi, buffer, 3, 1000) != HAL_OK) Error_Handler();
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 1);
 
     return;
@@ -165,7 +165,7 @@ void SR_setDigits(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_
     buffer[2] = (digits[4] << 4) | digits[5];
 
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 0);
-    HAL_SPI_Transmit(hspi, buffer, 3, HAL_MAX_DELAY);
+    if (HAL_SPI_Transmit(hspi, buffer, 3, 1000) != HAL_OK) Error_Handler();
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 1);
 
     return;
