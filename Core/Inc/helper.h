@@ -31,6 +31,4 @@ void DAC_setAll(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_Pi
 void SR_clearDigits(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_Pin);
 void SR_setDigits(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_Pin, uint8_t *digits);
 
-uint8_t reverseByte(uint8_t b);
-
 #endif
