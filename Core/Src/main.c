@@ -23,6 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "helper.h"
 
 /* USER CODE END Includes */
 
@@ -56,6 +57,16 @@ const osThreadAttr_t taskDisplay_attributes = {
     .priority = (osPriority_t)osPriorityHigh,
 };
 /* USER CODE BEGIN PV */
+
+// SET THIS BEFORE FLASHING
+const char WIFI_SSID[] = "";
+
+// SET THIS BEFORE FLASHING
+const char WIFI_PASSWORD[] = "";
+
+// SET THIS BEFORE FLASHING
+// 0mA -> 0, 10.6mA -> 255, linear
+const uint8_t TUBE_CURRENT = 200;
 
 /* USER CODE END PV */
 
@@ -110,6 +121,44 @@ int main(void)
     MX_SPI2_Init();
     MX_USART2_UART_Init();
     /* USER CODE BEGIN 2 */
+
+    // Power on setup
+    HAL_GPIO_WritePin(HV_SHDN_GPIO_Port, HV_SHDN_Pin, 0);
+    DAC_init(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin);
+    DAC_setAll(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin, TUBE_CURRENT);
+    SR_clearDigits(&SR_SPI, SR_nCS_GPIO_Port, SR_nCS_Pin);
+    HAL_GPIO_WritePin(ESP_RUN_GPIO_Port, ESP_RUN_Pin, 1);
+    HAL_GPIO_WritePin(ESP_nRST_GPIO_Port, ESP_nRST_Pin, 1);
+
+    HAL_Delay(10000);
+    // Check factory reset jumper
+    if (HAL_GPIO_ReadPin(JMP_nRST_GPIO_Port, JMP_nRST_Pin) == 0)
+    {
+        // Restore WiFi module default
+        if (HAL_UART_Transmit(&ESP_UART, (uint8_t *)"AT+RESTORE\r\n", 12, 1000) != HAL_OK) Error_Handler();
+        HAL_Delay(10000);
+
+        // Station mode
+        if (HAL_UART_Transmit(&ESP_UART, (uint8_t *)"AT+CWMODE=1\r\n", 13, 1000) != HAL_OK) Error_Handler();
+        HAL_Delay(1000);
+
+        // Connect to WiFi
+        // AT+CWJAP="{WIFI_SSID}","{WIFI_PASSWORD}"
+        if (HAL_UART_Transmit(&ESP_UART, (uint8_t *)"AT+CWJAP=\"", 10, 1000) != HAL_OK) Error_Handler();
+        if (HAL_UART_Transmit(&ESP_UART, (uint8_t *)WIFI_SSID, sizeof(WIFI_SSID) - 1, 1000) != HAL_OK) Error_Handler();
+        if (HAL_UART_Transmit(&ESP_UART, (uint8_t *)"\",\"", 3, 1000) != HAL_OK) Error_Handler();
+        if (HAL_UART_Transmit(&ESP_UART, (uint8_t *)WIFI_PASSWORD, sizeof(WIFI_PASSWORD) - 1, 1000) != HAL_OK) Error_Handler();
+        if (HAL_UART_Transmit(&ESP_UART, (uint8_t *)"\"\r\n", 3, 1000) != HAL_OK) Error_Handler();
+        HAL_Delay(10000);
+
+        // Reconnect on startup
+        if (HAL_UART_Transmit(&ESP_UART, (uint8_t *)"AT+CWAUTOCONN=1\r\n", 15, 1000) != HAL_OK) Error_Handler();
+        HAL_Delay(1000);
+    }
+
+    // Disable echo
+    if (HAL_UART_Transmit(&ESP_UART, (uint8_t *)"ATE0\r\n", 6, 1000) != HAL_OK) Error_Handler();
+    HAL_Delay(1000);
 
     /* USER CODE END 2 */
 

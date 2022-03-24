@@ -99,6 +99,7 @@ extern "C"
 #define RTC_I2C hi2c1
 #define DAC_SPI hspi1
 #define SR_SPI hspi2
+#define ESP_UART huart2
     /* USER CODE END Private defines */
 
 #ifdef __cplusplus
