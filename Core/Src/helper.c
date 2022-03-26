@@ -39,13 +39,13 @@ void RTC_getTime(I2C_HandleTypeDef *hi2c, DateTime *dateTime)
 void RTC_setTime(I2C_HandleTypeDef *hi2c, const DateTime *dateTime)
 {
     uint8_t buffer[7];
-    buffer[0] = ((dateTime->second / 10) << 4) & (dateTime->second % 10);
-    buffer[1] = ((dateTime->minute / 10) << 4) & (dateTime->minute % 10);
-    buffer[2] = ((dateTime->hour / 10) << 4) & (dateTime->hour % 10);
+    buffer[0] = ((dateTime->second / 10) << 4) | (dateTime->second % 10);
+    buffer[1] = ((dateTime->minute / 10) << 4) | (dateTime->minute % 10);
+    buffer[2] = ((dateTime->hour / 10) << 4) | (dateTime->hour % 10);
     buffer[3] = dateTime->weekday;
-    buffer[4] = ((dateTime->day / 10) << 4) & (dateTime->day % 10);
-    buffer[5] = ((dateTime->month / 10) << 4) & (dateTime->month % 10);
-    buffer[6] = ((dateTime->year / 10) << 4) & (dateTime->year % 10);
+    buffer[4] = ((dateTime->day / 10) << 4) | (dateTime->day % 10);
+    buffer[5] = ((dateTime->month / 10) << 4) | (dateTime->month % 10);
+    buffer[6] = ((dateTime->year / 10) << 4) | (dateTime->year % 10);
 
     if (HAL_I2C_Mem_Write(hi2c, 0xD0, 0, 1, buffer, 7, 1000) != HAL_OK) Error_Handler();
 
