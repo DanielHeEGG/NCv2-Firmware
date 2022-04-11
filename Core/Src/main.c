@@ -23,6 +23,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
+
 #include "helper.h"
 
 /* USER CODE END Includes */
@@ -56,6 +58,13 @@ const osThreadAttr_t taskDisplay_attributes = {
     .stack_size = 128 * 4,
     .priority = (osPriority_t)osPriorityHigh,
 };
+/* Definitions for taskGetTime */
+osThreadId_t taskGetTimeHandle;
+const osThreadAttr_t taskGetTime_attributes = {
+    .name = "taskGetTime",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
+};
 /* USER CODE BEGIN PV */
 
 // SET THIS BEFORE FLASHING
@@ -65,8 +74,17 @@ const char WIFI_SSID[] = "";
 const char WIFI_PASSWORD[] = "";
 
 // SET THIS BEFORE FLASHING
+// See http://worldtimeapi.org/timezones for full list of timezones
+const char TIMEZONE[] = "";
+
+// SET THIS BEFORE FLASHING
 // 0mA -> 0, 10.6mA -> 255, linear
-const uint8_t TUBE_CURRENT = 200;
+const uint8_t TUBE_CURRENT = 0;
+
+const char API_URL[] = "http://worldtimeapi.org/api/timezone/";
+char TIME_API[sizeof(API_URL) + sizeof(TIMEZONE) - 1 + 4];
+
+DateTime currentTime;
 
 /* USER CODE END PV */
 
@@ -78,6 +96,7 @@ static void MX_I2C1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_USART2_UART_Init(void);
 void startTaskDisplay(void *argument);
+void startTaskGetTime(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -95,6 +114,12 @@ void startTaskDisplay(void *argument);
 int main(void)
 {
     /* USER CODE BEGIN 1 */
+
+    // Format API URL string
+    memset(TIME_API, 0, sizeof(TIME_API));
+    strcpy(TIME_API, API_URL);
+    strcat(TIME_API, TIMEZONE);
+    strcat(TIME_API, ".txt");
 
     /* USER CODE END 1 */
 
@@ -128,12 +153,27 @@ int main(void)
     DAC_setAll(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin, TUBE_CURRENT);
     SR_clearDigits(&SR_SPI, SR_nCS_GPIO_Port, SR_nCS_Pin);
     HAL_GPIO_WritePin(ESP_RUN_GPIO_Port, ESP_RUN_Pin, 1);
+
+    // Reset WiFi module
+    HAL_GPIO_WritePin(ESP_nRST_GPIO_Port, ESP_nRST_Pin, 0);
+    HAL_Delay(100);
     HAL_GPIO_WritePin(ESP_nRST_GPIO_Port, ESP_nRST_Pin, 1);
 
-    HAL_Delay(10000);
+    // Cycle all digits while waiting for WiFi module startup
+    for (int i = 0; i < 10; i++)
+    {
+        uint8_t digits[] = {i, i, i, i, i, i};
+        SR_setDigits(&SR_SPI, SR_nCS_GPIO_Port, SR_nCS_Pin, digits);
+        HAL_Delay(1000);
+    }
+
     // Check factory reset jumper
     if (HAL_GPIO_ReadPin(JMP_nRST_GPIO_Port, JMP_nRST_Pin) == 0)
     {
+        // Display all zeros
+        uint8_t digits[] = {0, 0, 0, 0, 0, 0};
+        SR_setDigits(&SR_SPI, SR_nCS_GPIO_Port, SR_nCS_Pin, digits);
+
         // Restore WiFi module default
         if (HAL_UART_Transmit(&ESP_UART, (uint8_t *)"AT+RESTORE\r\n", 12, 1000) != HAL_OK) Error_Handler();
         HAL_Delay(10000);
@@ -160,6 +200,13 @@ int main(void)
     if (HAL_UART_Transmit(&ESP_UART, (uint8_t *)"ATE0\r\n", 6, 1000) != HAL_OK) Error_Handler();
     HAL_Delay(1000);
 
+    // Load internet time to RTC & currentTime
+    if (getInternetTime(&ESP_UART, &currentTime, TIME_API, sizeof(TIME_API)) == 0)
+    {
+        RTC_setTime(&RTC_I2C, &currentTime);
+    }
+    RTC_getTime(&RTC_I2C, &currentTime);
+
     /* USER CODE END 2 */
 
     /* Init scheduler */
@@ -184,6 +231,9 @@ int main(void)
     /* Create the thread(s) */
     /* creation of taskDisplay */
     taskDisplayHandle = osThreadNew(startTaskDisplay, NULL, &taskDisplay_attributes);
+
+    /* creation of taskGetTime */
+    taskGetTimeHandle = osThreadNew(startTaskGetTime, NULL, &taskGetTime_attributes);
 
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
@@ -437,12 +487,71 @@ static void MX_GPIO_Init(void)
 void startTaskDisplay(void *argument)
 {
     /* USER CODE BEGIN 5 */
+    DateTime pastTime = currentTime;
     /* Infinite loop */
     for (;;)
     {
-        osDelay(1);
+        if (currentTime.second != pastTime.second)
+        {
+            pastTime = currentTime;
+
+            uint8_t digits[6];
+            for (int i = 0; i < 10; i++)
+            {
+                digits[0] = i;
+                digits[1] = i;
+                digits[2] = i;
+                digits[3] = i;
+                digits[4] = i;
+                digits[5] = i;
+                SR_setDigits(&SR_SPI, SR_nCS_GPIO_Port, SR_nCS_Pin, digits);
+                osDelay(5);
+            }
+
+            digits[0] = currentTime.second % 10;
+            digits[1] = currentTime.second / 10;
+            digits[2] = currentTime.minute % 10;
+            digits[3] = currentTime.minute / 10;
+            digits[4] = currentTime.hour % 10;
+            digits[5] = currentTime.hour / 10;
+            SR_setDigits(&SR_SPI, SR_nCS_GPIO_Port, SR_nCS_Pin, digits);
+        }
+        else
+        {
+            osDelay(100);
+        }
     }
     /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_startTaskGetTime */
+/**
+ * @brief Function implementing the taskGetTime thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_startTaskGetTime */
+void startTaskGetTime(void *argument)
+{
+    /* USER CODE BEGIN startTaskGetTime */
+    /* Infinite loop */
+    for (;;)
+    {
+        // Get time from RTC
+        RTC_getTime(&RTC_I2C, &currentTime);
+
+        // Attempt to get internet time every day
+        if (currentTime.hour == 0)
+        {
+            DateTime dateTime;
+            if (getInternetTime(&ESP_UART, &dateTime, TIME_API, sizeof(TIME_API)) == 0)
+            {
+                RTC_setTime(&RTC_I2C, &dateTime);
+            }
+        }
+        osDelay(100);
+    }
+    /* USER CODE END startTaskGetTime */
 }
 
 /**

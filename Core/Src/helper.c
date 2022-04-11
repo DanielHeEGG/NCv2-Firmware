@@ -5,6 +5,9 @@
  ******************************************************************************
  */
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "helper.h"
 
 /**
@@ -169,4 +172,126 @@ void SR_setDigits(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 1);
 
     return;
+}
+
+/**
+ * @brief  Generates a DateTime object from a HTTP response packet
+ * @param  huart UART handle of WiFi module
+ * @param  dateTime DateTime object
+ * @param  api Time API URL
+ * @param  length Length of api string
+ * @retval 0 for successful parse, -1 for error
+ */
+int getInternetTime(UART_HandleTypeDef *huart, DateTime *dateTime, const char *api, int length)
+{
+    dateTime->year = 0;
+
+    // Get data packet
+    // AT+HTTPCLIENT=2,3,"{TIME_API}",,,1
+    if (HAL_UART_Transmit(huart, (uint8_t *)"AT+HTTPCLIENT=2,3,\"", 19, 1000) != HAL_OK) Error_Handler();
+    if (HAL_UART_Transmit(huart, (uint8_t *)api, length - 1, 1000) != HAL_OK) Error_Handler();
+    if (HAL_UART_Transmit(huart, (uint8_t *)"\",,,1\r\n", 7, 1000) != HAL_OK) Error_Handler();
+
+    char res[128];
+    memset(res, 0, 128);
+    HAL_UART_Receive(huart, (uint8_t *)res, 128, 5000);
+
+    // Parse data packet
+    int ptr = 0;
+    char temp[8];
+    for (int i = 0; i < 128; i++)
+    {
+        if (res[i] == 0) return -1;
+        if (res[i] == ',')
+        {
+            ptr = i + 1;
+            break;
+        }
+    }
+    for (int i = ptr; i < 128; i++)
+    {
+        if (res[i] == 0) return -1;
+        if (res[i] == '\n')
+        {
+            ptr = i + 1;
+            break;
+        }
+    }
+    for (int i = ptr; i < 128; i++)
+    {
+        if (res[i] == 0) return -1;
+        if (res[i] == '\n')
+        {
+            ptr = i + 1;
+            break;
+        }
+    }
+    for (int i = ptr; i < 128; i++)
+    {
+        if (res[i] == 0) return -1;
+        if (res[i] == ' ')
+        {
+            ptr = i + 1;
+            break;
+        }
+    }
+
+    if (ptr == 0) return -1;
+
+    ptr += 2;
+    memset(temp, 0, 8);
+    strncpy(temp, res + ptr, 2);
+    dateTime->year = atoi(temp);
+
+    ptr += 3;
+    memset(temp, 0, 8);
+    strncpy(temp, res + ptr, 2);
+    dateTime->month = atoi(temp);
+
+    ptr += 3;
+    memset(temp, 0, 8);
+    strncpy(temp, res + ptr, 2);
+    dateTime->day = atoi(temp);
+
+    ptr += 3;
+    memset(temp, 0, 8);
+    strncpy(temp, res + ptr, 2);
+    dateTime->hour = atoi(temp);
+
+    ptr += 3;
+    memset(temp, 0, 8);
+    strncpy(temp, res + ptr, 2);
+    dateTime->minute = atoi(temp);
+
+    ptr += 3;
+    memset(temp, 0, 8);
+    strncpy(temp, res + ptr, 2);
+    dateTime->second = atoi(temp);
+
+    for (int i = ptr; i < 128; i++)
+    {
+        if (res[i] == 0) return -1;
+        if (res[i] == '\n')
+        {
+            ptr = i + 1;
+            break;
+        }
+    }
+    for (int i = ptr; i < 128; i++)
+    {
+        if (res[i] == 0) return -1;
+        if (res[i] == ' ')
+        {
+            ptr = i + 1;
+            break;
+        }
+    }
+
+    memset(temp, 0, 8);
+    strncpy(temp, res + ptr, 1);
+    dateTime->weekday = atoi(temp);
+
+    if (dateTime->year != 0) return 0;
+
+    return -1;
 }
