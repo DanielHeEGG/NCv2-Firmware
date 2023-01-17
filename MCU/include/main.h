@@ -95,7 +95,7 @@ extern "C"
 #define RTC_SDA_Pin GPIO_PIN_7
 #define RTC_SDA_GPIO_Port GPIOB
 
-/* USER CODE BEGIN Private defines */
+    /* USER CODE BEGIN Private defines */
 #define RTC_I2C hi2c1
 #define DAC_SPI hspi1
 #define SR_SPI hspi2
