@@ -7,6 +7,11 @@
 
 #include "helper.hpp"
 
+/**
+ * @brief  Poll UART for data ending in newline
+ * @param  interface Hardware UART interface
+ * @retval Data
+ */
 String UARTRecvPoll(HardwareSerial *interface)
 {
     String buffer = "";
@@ -26,6 +31,12 @@ String UARTRecvPoll(HardwareSerial *interface)
     return buffer;
 }
 
+/**
+ * @brief  Read from flash memory
+ * @param  memory Hardware memory interface
+ * @param  data Data object to write to
+ * @retval None
+ */
 void readMemory(EEPROMClass *memory, MemoryData *data)
 {
     int index = 0;
@@ -61,6 +72,12 @@ void readMemory(EEPROMClass *memory, MemoryData *data)
     data->tubeCurrent = memory->read(index);
 }
 
+/**
+ * @brief  Write to flash memory
+ * @param  memory Hardware memory interface
+ * @param  data Data object to read from
+ * @retval None
+ */
 void writeMemory(EEPROMClass *memory, const MemoryData *data)
 {
     int index = 0;

@@ -30,11 +30,14 @@ int SYSMODE = 0;
 
 void setup()
 {
+    // Initialize UART
     Logger.begin(115200, SERIAL_8N1, 3, 1);
     Comms.begin(115200, SERIAL_8N1, 16, 17);
 
+    // Initialize flash memory
     EEPROM.begin(512);
 
+    // Set WiFi mode to SoftAP + Station Mode
     WiFi.mode(WIFI_MODE_APSTA);
 
 #ifdef LOGGING
@@ -45,6 +48,7 @@ void setup()
 #ifdef LOGGING
     Logger.println("[BOOT] Connecting to WiFi");
 #endif
+    // Attempt to connect
     WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
 
     runWebserver();
@@ -78,6 +82,7 @@ void runWebserver()
 #ifdef LOGGING
     Logger.println("[SERVER] Configuring SoftAP");
 #endif
+    // Configure SoftAP
     String ssid = String(ESP.getEfuseMac(), HEX);
     ssid.toUpperCase();
     ssid = "NixieController-" + ssid;
