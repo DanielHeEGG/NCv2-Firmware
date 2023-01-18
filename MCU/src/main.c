@@ -21,6 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
+
 #include "helper.h"
 /* USER CODE END Includes */
 
@@ -31,6 +33,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+// #define FLASH_MODE
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -50,7 +55,7 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint8_t RTCBuffer[7] = {0};
-DateTime dateTime = {0};
+uint8_t tubeCurrent = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -103,13 +108,56 @@ int main(void)
     MX_SPI2_Init();
     MX_USART2_UART_Init();
     MX_TIM2_Init();
-    /* USER CODE BEGIN 2 */
-    HAL_GPIO_WritePin(HV_SHDN_GPIO_Port, HV_SHDN_Pin, 0);
+/* USER CODE BEGIN 2 */
+#ifdef FLASH_MODE
+    HAL_GPIO_WritePin(HV_SHDN_GPIO_Port, HV_SHDN_Pin, 1);
+    HAL_GPIO_WritePin(ESP_RUN_GPIO_Port, ESP_RUN_Pin, 0);
+    HAL_GPIO_WritePin(ESP_nRST_GPIO_Port, ESP_nRST_Pin, 1);
+#endif
+
+#ifndef FLASH_MODE
+    // Initialize ESP, DAC, SR
+    HAL_GPIO_WritePin(HV_SHDN_GPIO_Port, HV_SHDN_Pin, 1);
+    HAL_GPIO_WritePin(ESP_RUN_GPIO_Port, ESP_RUN_Pin, 1);
+    HAL_GPIO_WritePin(ESP_nRST_GPIO_Port, ESP_nRST_Pin, 1);
+
     DAC_init(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin);
     DAC_setAll(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin, 150);
     SR_clearDigits(&SR_SPI, SR_nCS_GPIO_Port, SR_nCS_Pin);
 
+    // Block until ESP accepts command
+    for (;;)
+    {
+        HAL_Delay(1000);
+
+        if (HAL_GPIO_ReadPin(JMP_RST_GPIO_Port, JMP_RST_Pin) == 0)
+        {
+            char buffer[3] = {0};
+            HAL_UART_Transmit(&ESP_UART, "CONFIG\n", 7, 50);
+            HAL_UART_Receive(&ESP_UART, buffer, 2, 50);
+            if (strcmp(buffer, "OK") == 0) break;
+        }
+        else
+        {
+            char buffer[3] = {0};
+            HAL_UART_Transmit(&ESP_UART, "BOOT\n", 5, 50);
+            HAL_UART_Receive(&ESP_UART, buffer, 2, 100);
+            if (strcmp(buffer, "OK") == 0) break;
+        }
+    }
+
+    // Block until ESP gives OK
+    for (;;)
+    {
+        char buffer[3] = {0};
+        HAL_UART_Receive(&ESP_UART, buffer, 2, 50);
+        if (strcmp(buffer, "OK") == 0) break;
+    }
+
+    // Start display
     HAL_TIM_Base_Start_IT(&htim2);
+
+#endif
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -117,7 +165,9 @@ int main(void)
     while (1)
     {
         /* USER CODE END WHILE */
+#ifndef FLASH_MODE
 
+#endif
         /* USER CODE BEGIN 3 */
     }
     /* USER CODE END 3 */
@@ -129,6 +179,7 @@ int main(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     // Update display with RTC time
+    DateTime dateTime = {0};
     RTC_getTime(&RTC_I2C, &dateTime);
     uint8_t digits[6];
     digits[0] = dateTime.second % 10;
@@ -137,6 +188,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     digits[3] = dateTime.minute / 10;
     digits[4] = dateTime.hour % 10;
     digits[5] = dateTime.hour / 10;
+    DAC_setAll(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin, tubeCurrent);
     SR_setDigits(&SR_SPI, SR_nCS_GPIO_Port, SR_nCS_Pin, digits);
 }
 
