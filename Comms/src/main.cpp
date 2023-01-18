@@ -72,6 +72,16 @@ void loop()
     }
     if (SYSMODE == 1)
     {
+        if (WiFi.status() != WL_CONNECTED)
+        {
+#ifdef LOGGING
+            Logger.println("[MAIN] WiFi disconnected");
+#endif
+            SYSMODE = 0;
+        }
+        else
+        {
+        }
     }
 
     delay(100);
@@ -139,5 +149,19 @@ void serverHandler()
         WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
     }
 
-    server.send(200, "text/html", INDEX_HTML);
+    // Compile webpage
+    String webpage = String(INDEX_HTML);
+
+    if (SYSMODE == 0)
+    {
+        webpage.replace("{{STATUS}}", "<div style=\"color:red\">WiFi Disconnected</div>");
+    }
+    if (SYSMODE == 1)
+    {
+        webpage.replace("{{STATUS}}", "<div style=\"color:green\">WiFi Connected (SSID: " + memoryData.ssid + ")</div>");
+    }
+
+    webpage.replace("{{SETTINGS}}", "<div>Time Zone: " + memoryData.timezone + "</div><div>Tube Current: " + String((float)memoryData.tubeCurrent / 255.0f * 10.6f, 1) + " / 10.6mA</div>");
+
+    server.send(200, "text/html", webpage);
 }
