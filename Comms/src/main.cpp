@@ -94,22 +94,45 @@ void runWebserver()
 
 void serverHandler()
 {
-    if (server.hasArg("ssid") && server.hasArg("password") && server.hasArg("tubeCurrent") && server.hasArg("timezone"))
+    bool FLAG0 = false;
+    bool FLAG1 = false;
+
+    if (server.hasArg("ssid") && server.arg("ssid").length() != 0 && server.arg("ssid").length() <= 32)
     {
-        if (server.arg("ssid").length() <= 32 && server.arg("password").length() <= 64 && server.arg("tubeCurrent").toFloat() != 0.0f && server.arg("tubeCurrent").toFloat() <= 10.6f)
-        {
-            memoryData.ssid = server.arg("ssid");
-            memoryData.password = server.arg("password");
-            memoryData.timezone = server.arg("timezone");
-            memoryData.tubeCurrent = (uint8_t)(server.arg("tubeCurrent").toFloat() / 10.6f * 255);
-            writeMemory(&EEPROM, &memoryData);
-
-#ifdef LOGGING
-            Logger.println("[SERVER] New settings accepted");
-#endif
-
-            WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
-        }
+        memoryData.ssid = server.arg("ssid");
+        FLAG0 = true;
     }
+    if (server.hasArg("password") && server.arg("password").length() != 0 && server.arg("password").length() <= 64)
+    {
+        memoryData.password = server.arg("password");
+        FLAG0 = true;
+    }
+    if (server.hasArg("timezone") && server.arg("timezone").length() <= 64)
+    {
+        memoryData.timezone = server.arg("timezone");
+        FLAG1 = true;
+    }
+    if (server.hasArg("tubeCurrent") && server.arg("tubeCurrent").toFloat() != 0.0f && server.arg("tubeCurrent").toFloat() <= 10.6f)
+    {
+        memoryData.tubeCurrent = (uint8_t)(server.arg("tubeCurrent").toFloat() / 10.6f * 255);
+        FLAG1 = true;
+    }
+
+    if (FLAG0 || FLAG1)
+    {
+#ifdef LOGGING
+        Logger.println("[SERVER] New settings accepted");
+#endif
+        writeMemory(&EEPROM, &memoryData);
+    }
+
+    if (FLAG0)
+    {
+#ifdef LOGGING
+        Logger.println("[SERVER] Reconnecting WiFi");
+#endif
+        WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
+    }
+
     server.send(200, "text/html", INDEX_HTML);
 }
