@@ -125,27 +125,6 @@ int main(void)
     DAC_setAll(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin, 150);
     SR_clearDigits(&SR_SPI, SR_nCS_GPIO_Port, SR_nCS_Pin);
 
-    // Block until ESP accepts command
-    for (;;)
-    {
-        HAL_Delay(1000);
-
-        if (HAL_GPIO_ReadPin(JMP_RST_GPIO_Port, JMP_RST_Pin) == 0)
-        {
-            char buffer[3] = {0};
-            HAL_UART_Transmit(&ESP_UART, "CONFIG\n", 7, 50);
-            HAL_UART_Receive(&ESP_UART, buffer, 2, 50);
-            if (strcmp(buffer, "OK") == 0) break;
-        }
-        else
-        {
-            char buffer[3] = {0};
-            HAL_UART_Transmit(&ESP_UART, "BOOT\n", 5, 50);
-            HAL_UART_Receive(&ESP_UART, buffer, 2, 100);
-            if (strcmp(buffer, "OK") == 0) break;
-        }
-    }
-
     // Block until ESP gives OK
     for (;;)
     {

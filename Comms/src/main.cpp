@@ -38,29 +38,14 @@ void setup()
     WiFi.mode(WIFI_MODE_APSTA);
 
 #ifdef LOGGING
-    Logger.println("Waiting for command");
+    Logger.println("[BOOT] Reading flash memory");
 #endif
-
-    String buffer = UARTRecvPoll(&Comms);
-
-    if (buffer.equalsIgnoreCase("BOOT"))
-    {
-        Comms.println("OK");
+    readMemory(&EEPROM, &memoryData);
 
 #ifdef LOGGING
-        Logger.println("[BOOT] Reading flash memory");
+    Logger.println("[BOOT] Connecting to WiFi");
 #endif
-        readMemory(&EEPROM, &memoryData);
-
-#ifdef LOGGING
-        Logger.println("[BOOT] Connecting to WiFi");
-#endif
-        WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
-    }
-    if (buffer.equalsIgnoreCase("CONFIG"))
-    {
-        Comms.println("OK");
-    }
+    WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
 
     runWebserver();
 }
