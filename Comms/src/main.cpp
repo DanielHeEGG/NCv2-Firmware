@@ -9,7 +9,7 @@
 
 #include "helper.hpp"
 
-#define LOGGING
+// #define LOGGING
 
 // Embedded HTML in memory, null terminated
 extern const char INDEX_HTML[] asm("_binary_src_web_index_html_start");
@@ -24,7 +24,7 @@ WebServer server(LOCAL_IP, 80);
 HardwareSerial Logger(1);
 HardwareSerial Comms(2);
 
-MemoryData memoryData = {0};
+MemoryData memoryData;
 
 int SYSMODE = 0;
 
@@ -41,10 +41,9 @@ void setup()
     Logger.println("Waiting for command");
 #endif
 
-    char buffer[100] = {0};
-    UARTRecvPoll(&Comms, buffer);
+    String buffer = UARTRecvPoll(&Comms);
 
-    if (strcmp(buffer, "BOOT") == 0)
+    if (buffer.equalsIgnoreCase("BOOT"))
     {
         Comms.println("OK");
 
@@ -56,9 +55,9 @@ void setup()
 #ifdef LOGGING
         Logger.println("[BOOT] Connecting to WiFi");
 #endif
-        WiFi.begin(memoryData.ssid, memoryData.password);
+        WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
     }
-    if (strcmp(buffer, "CONFIG") == 0)
+    if (buffer.equalsIgnoreCase("CONFIG"))
     {
         Comms.println("OK");
     }
@@ -94,9 +93,10 @@ void runWebserver()
 #ifdef LOGGING
     Logger.println("[SERVER] Configuring SoftAP");
 #endif
-    char ssid[25] = {0};
-    snprintf(ssid, 25, "NixieController-%llX", ESP.getEfuseMac());
-    WiFi.softAP(ssid, NULL);
+    String ssid = String(ESP.getEfuseMac(), HEX);
+    ssid.toUpperCase();
+    ssid = "NixieController-" + ssid;
+    WiFi.softAP(ssid.c_str(), NULL);
     WiFi.softAPConfig(LOCAL_IP, GATEWAY_IP, SUBNET_MASK);
 
     server.on("/", serverHandler);
@@ -113,9 +113,9 @@ void serverHandler()
     {
         if (server.arg("ssid").length() <= 32 && server.arg("password").length() <= 64 && server.arg("tubeCurrent").toFloat() != 0.0f && server.arg("tubeCurrent").toFloat() <= 10.6f)
         {
-            strcpy(memoryData.ssid, server.arg("ssid").c_str());
-            strcpy(memoryData.password, server.arg("password").c_str());
-            strcpy(memoryData.timezone, server.arg("timezone").c_str());
+            memoryData.ssid = server.arg("ssid");
+            memoryData.password = server.arg("password");
+            memoryData.timezone = server.arg("timezone");
             memoryData.tubeCurrent = (uint8_t)(server.arg("tubeCurrent").toFloat() / 10.6f * 255);
             writeMemory(&EEPROM, &memoryData);
 
@@ -123,7 +123,7 @@ void serverHandler()
             Logger.println("[SERVER] New settings accepted");
 #endif
 
-            WiFi.begin(memoryData.ssid, memoryData.password);
+            WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
         }
     }
     server.send(200, "text/html", INDEX_HTML);

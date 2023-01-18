@@ -12,13 +12,13 @@
 
 struct MemoryData
 {
-    char ssid[32];
-    char password[64];
-    char timezone[64];
+    String ssid;
+    String password;
+    String timezone;
     uint8_t tubeCurrent;
 };
 
-void UARTRecvPoll(HardwareSerial *interface, char *buffer);
+String UARTRecvPoll(HardwareSerial *interface);
 
 void readMemory(EEPROMClass *memory, MemoryData *data);
 void writeMemory(EEPROMClass *memory, const MemoryData *data);

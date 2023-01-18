@@ -7,23 +7,23 @@
 
 #include "helper.hpp"
 
-void UARTRecvPoll(HardwareSerial *interface, char *buffer)
+String UARTRecvPoll(HardwareSerial *interface)
 {
-    int i = 0;
+    String buffer = "";
     for (;;)
     {
         if (interface->available())
         {
-            buffer[i] = interface->read();
-            if (buffer[i] == '\n')
+            char c = interface->read();
+            if (c == '\n')
             {
-                buffer[i] = '\0';
+                buffer += String('\0');
                 break;
             }
-            i++;
+            buffer += String(c);
         }
     }
-    return;
+    return buffer;
 }
 
 void readMemory(EEPROMClass *memory, MemoryData *data)
@@ -31,21 +31,30 @@ void readMemory(EEPROMClass *memory, MemoryData *data)
     int index = 0;
     int i = 0;
 
+    data->ssid = "";
     for (i = 0; i < 32; i++)
     {
-        data->ssid[i] = memory->read(index + i);
+        char c = memory->read(index + i);
+        if (c == '\0') continue;
+        data->ssid += String(c);
     }
     index += i;
 
+    data->password = "";
     for (i = 0; i < 64; i++)
     {
-        data->password[i] = memory->read(index + i);
+        char c = memory->read(index + i);
+        if (c == '\0') continue;
+        data->password += String(c);
     }
     index += i;
 
+    data->timezone = "";
     for (i = 0; i < 64; i++)
     {
-        data->timezone[i] = memory->read(index + i);
+        char c = memory->read(index + i);
+        if (c == '\0') continue;
+        data->timezone += String(c);
     }
     index += i;
 
@@ -59,19 +68,28 @@ void writeMemory(EEPROMClass *memory, const MemoryData *data)
 
     for (i = 0; i < 32; i++)
     {
-        memory->write(index + i, data->ssid[i]);
+        if (i < data->ssid.length())
+            memory->write(index + i, data->ssid.charAt(i));
+        else
+            memory->write(index + i, '\0');
     }
     index += i;
 
     for (i = 0; i < 64; i++)
     {
-        memory->write(index + i, data->password[i]);
+        if (i < data->password.length())
+            memory->write(index + i, data->password.charAt(i));
+        else
+            memory->write(index + i, '\0');
     }
     index += i;
 
     for (i = 0; i < 64; i++)
     {
-        memory->write(index + i, data->timezone[i]);
+        if (i < data->timezone.length())
+            memory->write(index + i, data->timezone.charAt(i));
+        else
+            memory->write(index + i, '\0');
     }
     index += i;
 
