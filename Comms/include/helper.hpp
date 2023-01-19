@@ -23,4 +23,6 @@ String UARTRecvPoll(HardwareSerial *interface);
 void readMemory(EEPROMClass *memory, MemoryData *data);
 void writeMemory(EEPROMClass *memory, const MemoryData *data);
 
+String parsePacket(String resp, uint8_t tubeCurrent);
+
 #endif

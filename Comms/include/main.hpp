@@ -11,9 +11,12 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <ESP.h>
+#include <HTTPClient.h>
 #include <String.h>
 #include <WebServer.h>
 #include <WiFi.h>
+
+#include "extern/json.hpp"
 
 void runWebserver();
 void serverHandler();

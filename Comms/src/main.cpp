@@ -27,6 +27,7 @@ HardwareSerial Comms(2);
 MemoryData memoryData;
 
 int SYSMODE = 0;
+int COUNTER = 0;
 
 void setup()
 {
@@ -65,7 +66,6 @@ void loop()
 #ifdef LOGGING
             Logger.println("[MAIN] WiFi connected");
 #endif
-            Comms.println("OK");
 
             SYSMODE = 1;
         }
@@ -81,6 +81,43 @@ void loop()
         }
         else
         {
+            // Get internet time every 600s
+            if (COUNTER == 0)
+            {
+                COUNTER = 6000;
+
+#ifdef LOGGING
+                Logger.println("[MAIN] Requesting internet time");
+#endif
+
+                HTTPClient client;
+                client.begin(("https://www.timeapi.io/api/Time/current/zone?timeZone=" + memoryData.timezone).c_str());
+
+                // Buffer Format:
+                // 0[0b00:Empty 0b01:Time 0b10:TubeCurrent 0b11:Both] 1-4[Year] 5-6[Month] 7-8[Day] 9-10[Hour] 11-12[Minute] 13-14[Second] 15[DayOfWeek] 16-18[TubeCurrent] 19['\n']
+                String buffer;
+
+                if (client.GET() == 200)
+                {
+                    buffer = parsePacket(client.getString(), memoryData.tubeCurrent);
+#ifdef LOGGING
+                    Logger.println("[MAIN] Time updated");
+#endif
+                }
+                else
+                {
+                    buffer = "2000000000000000";
+                    if (memoryData.tubeCurrent < 100) buffer += "0";
+                    if (memoryData.tubeCurrent < 10) buffer += "0";
+                    buffer += String((int)memoryData.tubeCurrent);
+#ifdef LOGGING
+                    Logger.println("[MAIN] Internet time request failed");
+#endif
+                }
+
+                Comms.print(buffer + "\n");
+            }
+            COUNTER--;
         }
     }
 
@@ -98,6 +135,7 @@ void runWebserver()
     ssid = "NixieController-" + ssid;
     WiFi.softAP(ssid.c_str(), NULL);
     WiFi.softAPConfig(LOCAL_IP, GATEWAY_IP, SUBNET_MASK);
+    WiFi.setHostname(ssid.c_str());
 
     server.on("/", serverHandler);
 
@@ -147,6 +185,12 @@ void serverHandler()
         Logger.println("[SERVER] Reconnecting WiFi");
 #endif
         WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
+    }
+
+    if (FLAG1)
+    {
+        // Get new internet time immediately
+        COUNTER = 0;
     }
 
     // Compile webpage

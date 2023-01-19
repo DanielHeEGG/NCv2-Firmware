@@ -55,8 +55,8 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint8_t RTCBuffer[7] = {0};
-uint8_t tubeCurrent = 0;
-/* USER CODE END PV */
+
+uint8_t uartBuffer[20];
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -108,7 +108,7 @@ int main(void)
     MX_SPI2_Init();
     MX_USART2_UART_Init();
     MX_TIM2_Init();
-/* USER CODE BEGIN 2 */
+    /* USER CODE BEGIN 2 */
 #ifdef FLASH_MODE
     HAL_GPIO_WritePin(HV_SHDN_GPIO_Port, HV_SHDN_Pin, 1);
     HAL_GPIO_WritePin(ESP_RUN_GPIO_Port, ESP_RUN_Pin, 0);
@@ -122,19 +122,32 @@ int main(void)
     HAL_GPIO_WritePin(ESP_nRST_GPIO_Port, ESP_nRST_Pin, 1);
 
     DAC_init(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin);
-    DAC_setAll(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin, 150);
+    DAC_setAll(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin, 0);
     SR_clearDigits(&SR_SPI, SR_nCS_GPIO_Port, SR_nCS_Pin);
 
-    // Block until ESP gives OK
+    // Poll for first ESP valid data packet
     for (;;)
     {
-        char buffer[3] = {0};
-        HAL_UART_Receive(&ESP_UART, buffer, 2, 50);
-        if (strcmp(buffer, "OK") == 0) break;
+        DataPacket dataPacket = {0};
+        HAL_UART_Receive(&ESP_UART, uartBuffer, 20, HAL_MAX_DELAY);
+        parseDataPacket(uartBuffer, &dataPacket);
+        if ((dataPacket.packetType & TIME) != 0)
+        {
+            RTC_setTime(&RTC_I2C, &dataPacket.dateTime);
+        }
+        if ((dataPacket.packetType & TUBECURRENT) != 0)
+        {
+            DAC_setAll(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin, dataPacket.tubeCurrent);
+            HAL_GPIO_WritePin(HV_SHDN_GPIO_Port, HV_SHDN_Pin, 0);
+            break;
+        }
     }
 
     // Start display
     HAL_TIM_Base_Start_IT(&htim2);
+
+    // Start listening for ESP data packets
+    HAL_UART_Receive_IT(&ESP_UART, uartBuffer, 20);
 
 #endif
     /* USER CODE END 2 */
@@ -144,9 +157,7 @@ int main(void)
     while (1)
     {
         /* USER CODE END WHILE */
-#ifndef FLASH_MODE
 
-#endif
         /* USER CODE BEGIN 3 */
     }
     /* USER CODE END 3 */
@@ -167,8 +178,27 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     digits[3] = dateTime.minute / 10;
     digits[4] = dateTime.hour % 10;
     digits[5] = dateTime.hour / 10;
-    DAC_setAll(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin, tubeCurrent);
     SR_setDigits(&SR_SPI, SR_nCS_GPIO_Port, SR_nCS_Pin, digits);
+}
+
+/**
+ * @brief UART callback function, runs every time a data packet is received from ESP32
+ */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    DataPacket dataPacket = {0};
+    parseDataPacket(uartBuffer, &dataPacket);
+
+    if ((dataPacket.packetType & TIME) != 0)
+    {
+        RTC_setTime(&RTC_I2C, &dataPacket.dateTime);
+    }
+    if ((dataPacket.packetType & TUBECURRENT) != 0)
+    {
+        DAC_setAll(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin, dataPacket.tubeCurrent);
+    }
+
+    HAL_UART_Receive_IT(&ESP_UART, uartBuffer, 20);
 }
 
 /**

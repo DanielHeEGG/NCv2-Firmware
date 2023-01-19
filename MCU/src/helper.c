@@ -5,6 +5,7 @@
  ******************************************************************************
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -170,6 +171,68 @@ void SR_setDigits(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 0);
     if (HAL_SPI_Transmit(hspi, buffer, 3, 50) != HAL_OK) Error_Handler();
     HAL_GPIO_WritePin(nCS_Port, nCS_Pin, 1);
+
+    return;
+}
+
+/**
+ * @brief  Parses ESP incoming data packet
+ * @param  uartBuffer Incoming data packet buffer
+ * @param  dataPacket Data packet to store in
+ * @retval None
+ */
+void parseDataPacket(uint8_t *uartBuffer, DataPacket *dataPacket)
+{
+    // Check for valid packet
+    if (sscanf((char *)&uartBuffer[0], "%1u", (unsigned int *)&dataPacket->packetType) != 1)
+    {
+        dataPacket->packetType = EMPTY;
+        return;
+    }
+    if (uartBuffer[19] != '\n')
+    {
+        dataPacket->packetType = EMPTY;
+        return;
+    }
+
+    if ((dataPacket->packetType & TIME) != 0)
+    {
+        if (sscanf((char *)&uartBuffer[1], "%4u", &dataPacket->dateTime.year) != 1)
+        {
+            dataPacket->packetType &= ~TIME;
+        }
+        if (sscanf((char *)&uartBuffer[5], "%2u", &dataPacket->dateTime.month) != 1)
+        {
+            dataPacket->packetType &= ~TIME;
+        }
+        if (sscanf((char *)&uartBuffer[7], "%2u", &dataPacket->dateTime.day) != 1)
+        {
+            dataPacket->packetType &= ~TIME;
+        }
+        if (sscanf((char *)&uartBuffer[9], "%2u", &dataPacket->dateTime.hour) != 1)
+        {
+            dataPacket->packetType &= ~TIME;
+        }
+        if (sscanf((char *)&uartBuffer[11], "%2u", &dataPacket->dateTime.minute) != 1)
+        {
+            dataPacket->packetType &= ~TIME;
+        }
+        if (sscanf((char *)&uartBuffer[13], "%2u", &dataPacket->dateTime.second) != 1)
+        {
+            dataPacket->packetType &= ~TIME;
+        }
+        if (sscanf((char *)&uartBuffer[15], "%1u", &dataPacket->dateTime.weekday) != 1)
+        {
+            dataPacket->packetType &= ~TIME;
+        }
+    }
+    if ((dataPacket->packetType & TUBECURRENT) != 0)
+    {
+        if (sscanf((char *)&uartBuffer[16], "%3u", (unsigned int *)&dataPacket->tubeCurrent) != 1)
+        {
+            dataPacket->packetType &= ~TUBECURRENT;
+        }
+    }
 
     return;
 }

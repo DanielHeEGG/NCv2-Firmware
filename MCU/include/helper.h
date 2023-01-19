@@ -21,6 +21,22 @@ typedef struct
     unsigned int year;
 } DateTime;
 
+typedef enum
+{
+    EMPTY = 0b00,
+    TIME = 0b01,
+    TUBECURRENT = 0b10,
+    BOTH = 0b11
+
+} EPacketType;
+
+typedef struct
+{
+    EPacketType packetType;
+    DateTime dateTime;
+    uint8_t tubeCurrent;
+} DataPacket;
+
 void RTC_getTime(I2C_HandleTypeDef *hi2c, DateTime *dateTime);
 void RTC_setTime(I2C_HandleTypeDef *hi2c, const DateTime *dateTime);
 
@@ -31,6 +47,6 @@ void DAC_setAll(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_Pi
 void SR_clearDigits(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_Pin);
 void SR_setDigits(SPI_HandleTypeDef *hspi, GPIO_TypeDef *nCS_Port, uint16_t nCS_Pin, uint8_t *digits);
 
-int getInternetTime(UART_HandleTypeDef *huart, DateTime *dateTime, const char *api, int length);
+void parseDataPacket(uint8_t *uartBuffer, DataPacket *dataPacket);
 
 #endif
