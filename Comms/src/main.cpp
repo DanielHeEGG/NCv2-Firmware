@@ -201,7 +201,6 @@ void serverTimeHandler()
         }
         writeMemory(&EEPROM, &memoryData);
 
-        // Get new internet time immediately
         COUNTER = 0;
     }
 
@@ -218,6 +217,8 @@ void serverTubeHandler()
 #endif
     }
     writeMemory(&EEPROM, &memoryData);
+
+    COUNTER = 0;
 
     serverRootHandler();
 }
