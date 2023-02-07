@@ -180,3 +180,23 @@ String parsePacket(String resp, uint8_t tubeCurrent)
 
     return buffer;
 }
+
+String parsePacket(String hour, String minute, String second, uint8_t tubeCurrent)
+{
+    String buffer = "3";
+
+    if (hour.length() < 2) buffer += "0";
+    buffer += hour;
+
+    if (minute.length() < 2) buffer += "0";
+    buffer += minute;
+
+    if (second.length() < 2) buffer += "0";
+    buffer += second;
+
+    if (tubeCurrent < 100) buffer += "0";
+    if (tubeCurrent < 10) buffer += "0";
+    buffer += String((int)tubeCurrent);
+
+    return buffer;
+}

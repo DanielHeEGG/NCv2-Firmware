@@ -151,7 +151,7 @@ void serverRootHandler()
     }
     else
     {
-        webpage.replace("{{TIME_STATUS}}", "<div>Internet Time Disabled</div>");
+        webpage.replace("{{TIME_STATUS}}", "<div style=\"color:red\">Internet Time Disabled</div>");
     }
 
     webpage.replace("{{TUBE_STATUS}}", "<div style=\"color:green\">Active Tube Current: " + String((float)memoryData.tubeCurrent / 255.0f * 10.6f, 1) + " / 10.6mA</div>");
@@ -163,6 +163,8 @@ void serverWifiHandler()
 {
     if (server.hasArg("enableWifi") && server.arg("enableWifi") == "true")
     {
+        memoryData.enableWifi = true;
+
         if (server.hasArg("ssid") && server.arg("ssid").length() != 0 && server.arg("ssid").length() <= 32)
         {
             memoryData.ssid = server.arg("ssid");
@@ -185,6 +187,11 @@ void serverWifiHandler()
         WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
     }
 
+    if (server.hasArg("disableWifi") && server.arg("disableWifi") == "true")
+    {
+        memoryData.enableWifi = false;
+    }
+
     serverRootHandler();
 }
 
@@ -192,16 +199,33 @@ void serverTimeHandler()
 {
     if (server.hasArg("enableNetTime") && server.arg("enableNetTime") == "true")
     {
+        memoryData.enableNetTime = true;
+
         if (server.hasArg("timezone") && server.arg("timezone").length() <= 64)
         {
             memoryData.timezone = server.arg("timezone");
 #ifdef LOGGING
-            Logger.println("[SERVER] New timwzone settings accepted");
+            Logger.println("[SERVER] New timezone settings accepted");
 #endif
         }
         writeMemory(&EEPROM, &memoryData);
 
         COUNTER = 0;
+    }
+
+    if (server.hasArg("enableManualTime") && server.arg("enableManualTime") == "true")
+    {
+        memoryData.enableNetTime = false;
+
+        if (server.hasArg("manualTimeHour") && server.arg("manualTimeHour").length() <= 2 && server.hasArg("manualTimeMinute") && server.arg("manualTimeMinute").length() <= 2 && server.hasArg("manualTimeSecond") && server.arg("manualTimeSecond").length() <= 2)
+        {
+            String buffer = parsePacket(server.arg("manualTimeHour"), server.arg("manualTimeMinute"), server.arg("manualTimeSecond"), memoryData.tubeCurrent);
+            Comms.print(buffer + "\n");
+#ifdef LOGGING
+            Logger.println("[SERVER] New manual time settings accepted");
+#endif
+        }
+        writeMemory(&EEPROM, &memoryData);
     }
 
     serverRootHandler();

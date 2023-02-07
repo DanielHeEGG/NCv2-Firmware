@@ -29,5 +29,6 @@ void writeMemory(EEPROMClass *memory, const MemoryData *data);
 
 String parsePacket(uint8_t tubeCurrnet);
 String parsePacket(String resp, uint8_t tubeCurrent);
+String parsePacket(String hour, String minute, String second, uint8_t tubeCurrent);
 
 #endif
