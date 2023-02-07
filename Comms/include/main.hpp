@@ -18,7 +18,9 @@
 
 #include "extern/json.hpp"
 
-void runWebserver();
-void serverHandler();
+void serverRootHandler();
+void serverWifiHandler();
+void serverTimeHandler();
+void serverTubeHandler();
 
 #endif

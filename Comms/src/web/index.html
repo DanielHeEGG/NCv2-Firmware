@@ -4,16 +4,25 @@
         <title>Nixie Controller Config</title>
     </head>
     <body>
-        {{STATUS}}
-        {{SETTINGS}}
-        <br>
-        <form action="/" method="POST">
+        <h3>WiFi Settings</h3>
+        {{WIFI_STATUS}}
+        <form action="/wifi" method="POST">
+            <br>
+            <label for="enableWifi">Enable WiFi:</label>
+            <input type="checkbox" id="enableWifi" name="enableWifi" value="true"><br>
             <label for="ssid">SSID:</label>
             <input type="text" id="ssid" name="ssid"><br>
             <label for="password">Password:</label>
             <input type="password" id="password" name="password"><br>
-            <label for="tubeCurrent">Tube Current (mA):</label>
-            <input type="text" id="tubeCurrent" name="tubeCurrent"><br>
+            <input type="submit" value="Submit">
+        </form>
+        <br><br>
+        <h3>Time Settings</h3>
+        {{TIME_STATUS}}
+        <form action="/time" method="POST">
+            <br>
+            <label for="enableNetTime">Enable Internet Time:</label>
+            <input type="checkbox" id="enableNetTime" name="enableNetTime" value="true"><br>
             <label for="timezone">Timezone:</label>
             <select id="timezone" name="timezone">
                 <option value=""></option>
@@ -576,6 +585,15 @@
                 <option value="US/Pacific">US/Pacific</option>
                 <option value="US/Samoa">US/Samoa</option>
             </select><br>
+            <input type="submit" value="Submit">
+        </form>
+        <br><br>
+        <h3>Tube Settings</h3>
+        {{TUBE_STATUS}}
+        <form action="/tube" method="POST">
+            <br>
+            <label for="tubeCurrent">Tube Current (mA):</label>
+            <input type="text" id="tubeCurrent" name="tubeCurrent"><br>
             <input type="submit" value="Submit">
         </form>
     </body>

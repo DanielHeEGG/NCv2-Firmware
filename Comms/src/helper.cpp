@@ -42,6 +42,13 @@ void readMemory(EEPROMClass *memory, MemoryData *data)
     int index = 0;
     int i = 0;
 
+    data->enableWifi = false;
+    if (memory->read(index) != 0)
+    {
+        data->enableWifi = true;
+    }
+    index++;
+
     data->ssid = "";
     for (i = 0; i < 32; i++)
     {
@@ -59,6 +66,13 @@ void readMemory(EEPROMClass *memory, MemoryData *data)
         data->password += String(c);
     }
     index += i;
+
+    data->enableNetTime = false;
+    if (memory->read(index) != 0)
+    {
+        data->enableNetTime = true;
+    }
+    index++;
 
     data->timezone = "";
     for (i = 0; i < 64; i++)
@@ -83,6 +97,16 @@ void writeMemory(EEPROMClass *memory, const MemoryData *data)
     int index = 0;
     int i = 0;
 
+    if (data->enableWifi)
+    {
+        memory->write(index, 1);
+    }
+    else
+    {
+        memory->write(index, 0);
+    }
+    index++;
+
     for (i = 0; i < 32; i++)
     {
         if (i < data->ssid.length())
@@ -101,6 +125,16 @@ void writeMemory(EEPROMClass *memory, const MemoryData *data)
     }
     index += i;
 
+    if (data->enableNetTime)
+    {
+        memory->write(index, 1);
+    }
+    else
+    {
+        memory->write(index, 0);
+    }
+    index++;
+
     for (i = 0; i < 64; i++)
     {
         if (i < data->timezone.length())
@@ -113,6 +147,16 @@ void writeMemory(EEPROMClass *memory, const MemoryData *data)
     memory->write(index, data->tubeCurrent);
 
     memory->commit();
+}
+
+String parsePacket(uint8_t tubeCurrent)
+{
+    String buffer = "2000000000000000";
+    if (tubeCurrent < 100) buffer += "0";
+    if (tubeCurrent < 10) buffer += "0";
+    buffer += String((int)tubeCurrent);
+
+    return buffer;
 }
 
 String parsePacket(String resp, uint8_t tubeCurrent)

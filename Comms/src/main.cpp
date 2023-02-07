@@ -26,7 +26,6 @@ HardwareSerial Comms(2);
 
 MemoryData memoryData;
 
-int SYSMODE = 0;
 int COUNTER = 0;
 
 void setup()
@@ -46,88 +45,17 @@ void setup()
 #endif
     readMemory(&EEPROM, &memoryData);
 
-#ifdef LOGGING
-    Logger.println("[BOOT] Connecting to WiFi");
-#endif
-    // Attempt to connect
-    WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
-
-    runWebserver();
-}
-
-void loop()
-{
-    server.handleClient();
-
-    if (SYSMODE == 0)
+    if (memoryData.enableWifi)
     {
-        if (WiFi.status() == WL_CONNECTED)
-        {
 #ifdef LOGGING
-            Logger.println("[MAIN] WiFi connected");
+        Logger.println("[BOOT] Connecting to WiFi");
 #endif
-
-            SYSMODE = 1;
-        }
-    }
-    if (SYSMODE == 1)
-    {
-        if (WiFi.status() != WL_CONNECTED)
-        {
-#ifdef LOGGING
-            Logger.println("[MAIN] WiFi disconnected");
-#endif
-            SYSMODE = 0;
-        }
-        else
-        {
-            // Get internet time every 600s
-            if (COUNTER == 0)
-            {
-                COUNTER = 6000;
-
-#ifdef LOGGING
-                Logger.println("[MAIN] Requesting internet time");
-#endif
-
-                HTTPClient client;
-                client.begin(("https://www.timeapi.io/api/Time/current/zone?timeZone=" + memoryData.timezone).c_str());
-
-                // Buffer Format:
-                // 0[0b00:Empty 0b01:Time 0b10:TubeCurrent 0b11:Both] 1-4[Year] 5-6[Month] 7-8[Day] 9-10[Hour] 11-12[Minute] 13-14[Second] 15[DayOfWeek] 16-18[TubeCurrent] 19['\n']
-                String buffer;
-
-                if (client.GET() == 200)
-                {
-                    buffer = parsePacket(client.getString(), memoryData.tubeCurrent);
-#ifdef LOGGING
-                    Logger.println("[MAIN] Time updated");
-#endif
-                }
-                else
-                {
-                    buffer = "2000000000000000";
-                    if (memoryData.tubeCurrent < 100) buffer += "0";
-                    if (memoryData.tubeCurrent < 10) buffer += "0";
-                    buffer += String((int)memoryData.tubeCurrent);
-#ifdef LOGGING
-                    Logger.println("[MAIN] Internet time request failed");
-#endif
-                }
-
-                Comms.print(buffer + "\n");
-            }
-            COUNTER--;
-        }
+        // Attempt to connect
+        WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
     }
 
-    delay(100);
-}
-
-void runWebserver()
-{
 #ifdef LOGGING
-    Logger.println("[SERVER] Configuring SoftAP");
+    Logger.println("[BOOT] Configuring SoftAP");
 #endif
     // Configure SoftAP
     String ssid = String(ESP.getEfuseMac(), HEX);
@@ -137,75 +65,159 @@ void runWebserver()
     WiFi.softAPConfig(LOCAL_IP, GATEWAY_IP, SUBNET_MASK);
     WiFi.setHostname(ssid.c_str());
 
-    server.on("/", serverHandler);
+    // Configure web server
+    server.on("/", serverRootHandler);
+    server.on("/wifi", serverWifiHandler);
+    server.on("/time", serverTimeHandler);
+    server.on("/tube", serverTubeHandler);
 
 #ifdef LOGGING
-    Logger.println("[SERVER] Starting server");
+    Logger.println("[BOOT] Starting server");
 #endif
     server.begin();
 }
 
-void serverHandler()
+void loop()
 {
-    bool FLAG0 = false;
-    bool FLAG1 = false;
+    server.handleClient();
 
-    if (server.hasArg("ssid") && server.arg("ssid").length() != 0 && server.arg("ssid").length() <= 32)
+    if (COUNTER == 0)
     {
-        memoryData.ssid = server.arg("ssid");
-        FLAG0 = true;
-    }
-    if (server.hasArg("password") && server.arg("password").length() != 0 && server.arg("password").length() <= 64)
-    {
-        memoryData.password = server.arg("password");
-        FLAG0 = true;
-    }
-    if (server.hasArg("timezone") && server.arg("timezone").length() <= 64)
-    {
-        memoryData.timezone = server.arg("timezone");
-        FLAG1 = true;
-    }
-    if (server.hasArg("tubeCurrent") && server.arg("tubeCurrent").toFloat() != 0.0f && server.arg("tubeCurrent").toFloat() <= 10.6f)
-    {
-        memoryData.tubeCurrent = (uint8_t)(server.arg("tubeCurrent").toFloat() / 10.6f * 255);
-        FLAG1 = true;
-    }
+        COUNTER = 6000;
 
-    if (FLAG0 || FLAG1)
-    {
+        // Buffer Format:
+        // 0[0b00:Empty 0b01:Time 0b10:TubeCurrent 0b11:Both] 1-4[Year] 5-6[Month] 7-8[Day] 9-10[Hour] 11-12[Minute] 13-14[Second] 15[DayOfWeek] 16-18[TubeCurrent] 19['\n']
+        String buffer;
+
+        if (memoryData.enableNetTime && memoryData.enableWifi && WiFi.status() == WL_CONNECTED)
+        {
 #ifdef LOGGING
-        Logger.println("[SERVER] New settings accepted");
+            Logger.println("[MAIN] Requesting internet time");
 #endif
-        writeMemory(&EEPROM, &memoryData);
+            HTTPClient client;
+            client.begin(("https://www.timeapi.io/api/Time/current/zone?timeZone=" + memoryData.timezone).c_str());
+
+            if (client.GET() == 200)
+            {
+                buffer = parsePacket(client.getString(), memoryData.tubeCurrent);
+#ifdef LOGGING
+                Logger.println("[MAIN] Time updated");
+#endif
+            }
+            else
+            {
+                buffer = parsePacket(memoryData.tubeCurrent);
+#ifdef LOGGING
+                Logger.println("[MAIN] Internet time request failed");
+#endif
+            }
+        }
+        else
+        {
+            buffer = parsePacket(memoryData.tubeCurrent);
+        }
+
+        Comms.print(buffer + "\n");
+    }
+    COUNTER--;
+
+    delay(100);
+}
+
+void serverRootHandler()
+{
+    // Compile webpage
+    String webpage = String(INDEX_HTML);
+
+    if (memoryData.enableWifi)
+    {
+        if (WiFi.status() == WL_CONNECTED)
+        {
+            webpage.replace("{{WIFI_STATUS}}", "<div style=\"color:green\">WiFi Connected (SSID: " + memoryData.ssid + ")</div>");
+        }
+        else
+        {
+            webpage.replace("{{WIFI_STATUS}}", "<div style=\"color:red\">WiFi Disconnected</div>");
+        }
+    }
+    else
+    {
+        webpage.replace("{{WIFI_STATUS}}", "<div style=\"color:red\">WiFi Disabled</div>");
     }
 
-    if (FLAG0)
+    if (memoryData.enableNetTime)
     {
+        webpage.replace("{{TIME_STATUS}}", "<div style=\"color:green\"> Active Time Zone: " + memoryData.timezone + "</div>");
+    }
+    else
+    {
+        webpage.replace("{{TIME_STATUS}}", "<div>Internet Time Disabled</div>");
+    }
+
+    webpage.replace("{{TUBE_STATUS}}", "<div style=\"color:green\">Active Tube Current: " + String((float)memoryData.tubeCurrent / 255.0f * 10.6f, 1) + " / 10.6mA</div>");
+
+    server.send(200, "text/html", webpage);
+}
+
+void serverWifiHandler()
+{
+    if (server.hasArg("enableWifi") && server.arg("enableWifi") == "true")
+    {
+        if (server.hasArg("ssid") && server.arg("ssid").length() != 0 && server.arg("ssid").length() <= 32)
+        {
+            memoryData.ssid = server.arg("ssid");
+#ifdef LOGGING
+            Logger.println("[SERVER] New WiFi SSID settings accepted");
+#endif
+        }
+        if (server.hasArg("password") && server.arg("password").length() != 0 && server.arg("password").length() <= 64)
+        {
+            memoryData.password = server.arg("password");
+#ifdef LOGGING
+            Logger.println("[SERVER] New WiFi password settings accepted");
+#endif
+        }
+        writeMemory(&EEPROM, &memoryData);
+
 #ifdef LOGGING
         Logger.println("[SERVER] Reconnecting WiFi");
 #endif
         WiFi.begin(memoryData.ssid.c_str(), memoryData.password.c_str());
     }
 
-    if (FLAG1)
+    serverRootHandler();
+}
+
+void serverTimeHandler()
+{
+    if (server.hasArg("enableNetTime") && server.arg("enableNetTime") == "true")
     {
+        if (server.hasArg("timezone") && server.arg("timezone").length() <= 64)
+        {
+            memoryData.timezone = server.arg("timezone");
+#ifdef LOGGING
+            Logger.println("[SERVER] New timwzone settings accepted");
+#endif
+        }
+        writeMemory(&EEPROM, &memoryData);
+
         // Get new internet time immediately
         COUNTER = 0;
     }
 
-    // Compile webpage
-    String webpage = String(INDEX_HTML);
+    serverRootHandler();
+}
 
-    if (SYSMODE == 0)
+void serverTubeHandler()
+{
+    if (server.hasArg("tubeCurrent") && server.arg("tubeCurrent").toFloat() != 0.0f && server.arg("tubeCurrent").toFloat() <= 10.6f)
     {
-        webpage.replace("{{STATUS}}", "<div style=\"color:red\">WiFi Disconnected</div>");
+        memoryData.tubeCurrent = (uint8_t)(server.arg("tubeCurrent").toFloat() / 10.6f * 255);
+#ifdef LOGGING
+        Logger.println("[SERVER] New tube current settings accepted");
+#endif
     }
-    if (SYSMODE == 1)
-    {
-        webpage.replace("{{STATUS}}", "<div style=\"color:green\">WiFi Connected (SSID: " + memoryData.ssid + ")</div>");
-    }
+    writeMemory(&EEPROM, &memoryData);
 
-    webpage.replace("{{SETTINGS}}", "<div>Time Zone: " + memoryData.timezone + "</div><div>Tube Current: " + String((float)memoryData.tubeCurrent / 255.0f * 10.6f, 1) + " / 10.6mA</div>");
-
-    server.send(200, "text/html", webpage);
+    serverRootHandler();
 }
