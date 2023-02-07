@@ -56,7 +56,7 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 uint8_t RTCBuffer[7] = {0};
 
-uint8_t uartBuffer[20];
+uint8_t uartBuffer[11];
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -129,7 +129,7 @@ int main(void)
     for (;;)
     {
         DataPacket dataPacket = {0};
-        HAL_UART_Receive(&ESP_UART, uartBuffer, 20, HAL_MAX_DELAY);
+        HAL_UART_Receive(&ESP_UART, uartBuffer, 11, HAL_MAX_DELAY);
         parseDataPacket(uartBuffer, &dataPacket);
         if ((dataPacket.packetType & TIME) != 0)
         {
@@ -147,7 +147,7 @@ int main(void)
     HAL_TIM_Base_Start_IT(&htim2);
 
     // Start listening for ESP data packets
-    HAL_UART_Receive_IT(&ESP_UART, uartBuffer, 20);
+    HAL_UART_Receive_IT(&ESP_UART, uartBuffer, 11);
 
 #endif
     /* USER CODE END 2 */
@@ -198,7 +198,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
         DAC_setAll(&DAC_SPI, DAC_nCS_GPIO_Port, DAC_nCS_Pin, dataPacket.tubeCurrent);
     }
 
-    HAL_UART_Receive_IT(&ESP_UART, uartBuffer, 20);
+    HAL_UART_Receive_IT(&ESP_UART, uartBuffer, 11);
 }
 
 /**

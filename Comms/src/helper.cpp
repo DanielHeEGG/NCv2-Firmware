@@ -151,7 +151,7 @@ void writeMemory(EEPROMClass *memory, const MemoryData *data)
 
 String parsePacket(uint8_t tubeCurrent)
 {
-    String buffer = "2000000000000000";
+    String buffer = "2000000";
     if (tubeCurrent < 100) buffer += "0";
     if (tubeCurrent < 10) buffer += "0";
     buffer += String((int)tubeCurrent);
@@ -165,14 +165,6 @@ String parsePacket(String resp, uint8_t tubeCurrent)
 
     String buffer = "3";
 
-    buffer += String(res["year"].get<int>());
-
-    if (res["month"].get<int>() < 10) buffer += "0";
-    buffer += String(res["month"].get<int>());
-
-    if (res["day"].get<int>() < 10) buffer += "0";
-    buffer += String(res["day"].get<int>());
-
     if (res["hour"].get<int>() < 10) buffer += "0";
     buffer += String(res["hour"].get<int>());
 
@@ -181,23 +173,6 @@ String parsePacket(String resp, uint8_t tubeCurrent)
 
     if (res["seconds"].get<int>() < 10) buffer += "0";
     buffer += String(res["seconds"].get<int>());
-
-    if (res["dayOfWeek"].get<std::string>().compare("Monday") == 0)
-        buffer += "1";
-    else if (res["dayOfWeek"].get<std::string>().compare("Tuesday") == 0)
-        buffer += "2";
-    else if (res["dayOfWeek"].get<std::string>().compare("Wednesday") == 0)
-        buffer += "3";
-    else if (res["dayOfWeek"].get<std::string>().compare("Thursday") == 0)
-        buffer += "4";
-    else if (res["dayOfWeek"].get<std::string>().compare("Friday") == 0)
-        buffer += "5";
-    else if (res["dayOfWeek"].get<std::string>().compare("Saturday") == 0)
-        buffer += "6";
-    else if (res["dayOfWeek"].get<std::string>().compare("Sunday") == 0)
-        buffer += "7";
-    else
-        buffer += "0";
 
     if (tubeCurrent < 100) buffer += "0";
     if (tubeCurrent < 10) buffer += "0";

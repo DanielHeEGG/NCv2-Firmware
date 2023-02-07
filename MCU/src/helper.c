@@ -26,10 +26,6 @@ void RTC_getTime(I2C_HandleTypeDef *hi2c, DateTime *dateTime)
     dateTime->second = (buffer[0] & 0x0F) + 10 * ((buffer[0] & 0x70) >> 4);
     dateTime->minute = (buffer[1] & 0x0F) + 10 * ((buffer[1] & 0x70) >> 4);
     dateTime->hour = (buffer[2] & 0x0F) + 10 * ((buffer[2] & 0x30) >> 4);
-    dateTime->weekday = buffer[3] & 0x07;
-    dateTime->day = (buffer[4] & 0x0F) + 10 * ((buffer[4] & 0x30) >> 4);
-    dateTime->month = (buffer[5] & 0x0F) + 10 * ((buffer[5] & 0x10) >> 4);
-    dateTime->year = (buffer[6] & 0x0F) + 10 * ((buffer[6] & 0xF0) >> 4);
 
     return;
 }
@@ -46,10 +42,10 @@ void RTC_setTime(I2C_HandleTypeDef *hi2c, const DateTime *dateTime)
     buffer[0] = ((dateTime->second / 10) << 4) | (dateTime->second % 10);
     buffer[1] = ((dateTime->minute / 10) << 4) | (dateTime->minute % 10);
     buffer[2] = ((dateTime->hour / 10) << 4) | (dateTime->hour % 10);
-    buffer[3] = dateTime->weekday;
-    buffer[4] = ((dateTime->day / 10) << 4) | (dateTime->day % 10);
-    buffer[5] = ((dateTime->month / 10) << 4) | (dateTime->month % 10);
-    buffer[6] = ((dateTime->year / 10) << 4) | (dateTime->year % 10);
+    buffer[3] = 0;
+    buffer[4] = 0;
+    buffer[5] = 0;
+    buffer[6] = 0;
 
     if (HAL_I2C_Mem_Write(hi2c, 0xD0, 0, 1, buffer, 7, 50) != HAL_OK) Error_Handler();
 
@@ -189,7 +185,7 @@ void parseDataPacket(uint8_t *uartBuffer, DataPacket *dataPacket)
         dataPacket->packetType = EMPTY;
         return;
     }
-    if (uartBuffer[19] != '\n')
+    if (uartBuffer[10] != '\n')
     {
         dataPacket->packetType = EMPTY;
         return;
@@ -197,38 +193,22 @@ void parseDataPacket(uint8_t *uartBuffer, DataPacket *dataPacket)
 
     if ((dataPacket->packetType & TIME) != 0)
     {
-        if (sscanf((char *)&uartBuffer[1], "%4u", &dataPacket->dateTime.year) != 1)
+        if (sscanf((char *)&uartBuffer[1], "%2u", &dataPacket->dateTime.hour) != 1)
         {
             dataPacket->packetType &= ~TIME;
         }
-        if (sscanf((char *)&uartBuffer[5], "%2u", &dataPacket->dateTime.month) != 1)
+        if (sscanf((char *)&uartBuffer[3], "%2u", &dataPacket->dateTime.minute) != 1)
         {
             dataPacket->packetType &= ~TIME;
         }
-        if (sscanf((char *)&uartBuffer[7], "%2u", &dataPacket->dateTime.day) != 1)
-        {
-            dataPacket->packetType &= ~TIME;
-        }
-        if (sscanf((char *)&uartBuffer[9], "%2u", &dataPacket->dateTime.hour) != 1)
-        {
-            dataPacket->packetType &= ~TIME;
-        }
-        if (sscanf((char *)&uartBuffer[11], "%2u", &dataPacket->dateTime.minute) != 1)
-        {
-            dataPacket->packetType &= ~TIME;
-        }
-        if (sscanf((char *)&uartBuffer[13], "%2u", &dataPacket->dateTime.second) != 1)
-        {
-            dataPacket->packetType &= ~TIME;
-        }
-        if (sscanf((char *)&uartBuffer[15], "%1u", &dataPacket->dateTime.weekday) != 1)
+        if (sscanf((char *)&uartBuffer[5], "%2u", &dataPacket->dateTime.second) != 1)
         {
             dataPacket->packetType &= ~TIME;
         }
     }
     if ((dataPacket->packetType & TUBECURRENT) != 0)
     {
-        if (sscanf((char *)&uartBuffer[16], "%3u", (unsigned int *)&dataPacket->tubeCurrent) != 1)
+        if (sscanf((char *)&uartBuffer[7], "%3u", (unsigned int *)&dataPacket->tubeCurrent) != 1)
         {
             dataPacket->packetType &= ~TUBECURRENT;
         }

@@ -86,7 +86,7 @@ void loop()
         COUNTER = 6000;
 
         // Buffer Format:
-        // 0[0b00:Empty 0b01:Time 0b10:TubeCurrent 0b11:Both] 1-4[Year] 5-6[Month] 7-8[Day] 9-10[Hour] 11-12[Minute] 13-14[Second] 15[DayOfWeek] 16-18[TubeCurrent] 19['\n']
+        // 0[0b00:Empty 0b01:Time 0b10:TubeCurrent 0b11:Both] 1-2[Hour] 3-4[Minute] 5-6[Second] 7-9[TubeCurrent] 10['\n']
         String buffer;
 
         if (memoryData.enableNetTime && memoryData.enableWifi && WiFi.status() == WL_CONNECTED)

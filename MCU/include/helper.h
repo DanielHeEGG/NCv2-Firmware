@@ -15,10 +15,6 @@ typedef struct
     unsigned int second;
     unsigned int minute;
     unsigned int hour;
-    unsigned int weekday;
-    unsigned int day;
-    unsigned int month;
-    unsigned int year;
 } DateTime;
 
 typedef enum
